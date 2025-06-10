@@ -1,6 +1,7 @@
 # empkit/empkit/base.py
 
 import numpy as np
+import pandas as pd
 import sklearn.base
 
 class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEstimator):
@@ -27,6 +28,7 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
         # TODO : need to handle ties where whole X row is identical
 
         projected = X @ self.projection_matrix
+
         self.sorted_indices = projected.argsort(axis=0)
         assert self.sorted_indices.shape == (self.n, self.p)
         self.sorted_projected = np.take_along_axis(projected, self.sorted_indices, axis=0)
@@ -51,11 +53,28 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
             def lookup_y(sorted_index):
                 return self.y[self.sorted_indices[sorted_index, j]]
 
+            def blend_y(k):
+                z = self.sorted_projected[k, j]
+
+                # find range with all the tied z values
+
+                k_min = k
+                while k_min > 0 and self.sorted_projected[k_min-1, j] == z:
+                    k_min = k_min - 1
+                assert self.sorted_projected[k_min, j] == z
+
+                k_max = k
+                while k_max + 1 < self.n and self.sorted_projected[k_max+1, j] == z:
+                    k_max = k_max + 1
+                assert self.sorted_projected[k_max, j] == z
+
+                return sum(lookup_y(k2) for k2 in range(k_min, k_max+1)) / (k_max - k_min + 1)
+
             # TODO: rewrite to be vectorized
             for (i, index_ij) in enumerate(sorted_indices):
                 if index_ij == 0:
                     # goes before all the projected values
-                    output[i] += lookup_y(0)
+                    output[i] += blend_y(0)
                 elif index_ij < self.n:
                     # interpolation
 
@@ -66,11 +85,12 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
 
                     interp_factor = (curr_z - before_z) / (after_z - before_z)
 
-                    before_y = lookup_y(index_ij - 1)
-                    after_y = lookup_y(index_ij)
+                    before_y = blend_y(index_ij - 1)
+                    after_y = blend_y(index_ij)
 
                     output[i] += interp_factor * (after_y - before_y) + before_y
                 else:
-                    output[i] += lookup_y(-1)
+                    # goes after all the projected values
+                    output[i] += blend_y(-1)
 
         return output / self.p

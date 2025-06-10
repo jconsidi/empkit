@@ -13,7 +13,7 @@ class EMP1dTestCase(unittest.TestCase):
         self.assertEqual(v.size, 1)
         self.assertAlmostEqual(v.reshape(()), v_expected)
     
-    def test_line(self):
+    def test_00_line(self):
         for p in range(1, 21):
             with self.subTest(projections=p):
                 m = EnsembleOfManyProjections(projections=p)
@@ -37,3 +37,18 @@ class EMP1dTestCase(unittest.TestCase):
                 self.check_prediction(m, [+1.50], 1.00)
                 self.check_prediction(m, [+1.75], 1.00)
                 self.check_prediction(m, [+2.00], 1.00)
+
+    def test_01_collision(self):
+        for p in range(1, 6):
+            with self.subTest(projections=p):
+                m = EnsembleOfManyProjections(projections=p)
+                m.fit([[0], [1], [1], [2]], [0, 0, 1, 1])
+
+                # training points
+                self.check_prediction(m, [0.00], 0.00)
+                self.check_prediction(m, [1.00], 0.50)
+                self.check_prediction(m, [2.00], 1.00)
+
+                # interpolation
+                self.check_prediction(m, [0.5], 0.25)
+                self.check_prediction(m, [1.5], 0.75)
