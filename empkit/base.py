@@ -86,7 +86,7 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
                 if index_ij == 0:
                     # goes before all the projected values
                     output[i] += lookup_y(0)
-                elif index_ij < self.n:
+                elif index_ij < len(self.projected_pairs[j]):
                     # interpolation
 
                     before_z = self.projected_pairs[j][index_ij - 1, 0]
