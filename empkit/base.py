@@ -13,7 +13,7 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
         # number of input columns
         self.c = None
         # number of projections
-        self.p = projections
+        self.projections = projections
 
         # random projections
         self.projection_matrix = None
@@ -23,14 +23,14 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
         assert len(X.shape) == 2
 
         (self.n, self.c) = X.shape
-        self.projection_matrix = np.random.normal(size=(self.c, self.p))
+        self.projection_matrix = np.random.normal(size=(self.c, self.projections))
 
         # TODO : need to handle ties where whole X row is identical
 
         projected = X @ self.projection_matrix
 
         self.projected_pairs = []
-        for j in range(self.p):
+        for j in range(self.projections):
             # first column is projected values, second column is y values
             temp = np.zeros((self.n, 2))
             temp[:, 0] = projected[:, j]
@@ -74,7 +74,7 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
         projected = X @ self.projection_matrix
 
         output = np.zeros(X.shape[0])
-        for j in range(self.p):
+        for j in range(self.projections):
             sorted_indices = np.searchsorted(self.projected_pairs[j][:,0], projected[:, j])
 
             def lookup_y(sorted_index):
@@ -105,4 +105,4 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
                     assert projected[i, j] >= self.projected_pairs[j][-1, 0]
                     output[i] += lookup_y(-1)
 
-        return output / self.p
+        return output / self.projections
