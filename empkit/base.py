@@ -7,8 +7,12 @@ import sklearn.base
 from .interp import InterpRegressor
 
 class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEstimator):
-    def __init__(self, *, projections=1):
+    def __init__(self, *, estimator=None, projections=1):
         super().__init__()
+
+        self.estimator = estimator
+        if estimator is None:
+            self.estimator = InterpRegressor()
 
         # number of training points
         self.n = None
@@ -35,7 +39,7 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
 
         self.projection_models = []
         for j in range(self.projections):
-            m = InterpRegressor()
+            m = sklearn.base.clone(self.estimator)
             m.fit(projected[:, j:j+1], y)
             self.projection_models.append(m)
 
