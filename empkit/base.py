@@ -37,11 +37,13 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
 
         projected = X @ self.projection_matrix
 
+        y_residual = y
         self.projection_models = []
         for j in range(self.projections):
             m = sklearn.base.clone(self.estimator)
-            m.fit(projected[:, j:j+1], y)
+            m.fit(projected[:, j:j+1], y_residual)
             self.projection_models.append(m)
+            y_residual = y_residual - m.predict(projected[:, j:j+1])
 
         return self
 
@@ -56,4 +58,4 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
         for j in range(self.projections):
             output += self.projection_models[j].predict(projected[:, j:j+1])
 
-        return output / self.projections
+        return output
