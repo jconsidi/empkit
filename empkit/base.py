@@ -4,10 +4,12 @@ import numpy as np
 import pandas as pd
 import sklearn.base
 
+from sklearn.model_selection import train_test_split
+
 from .interp import InterpRegressor
 
 class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEstimator):
-    def __init__(self, *, estimator=None, projections=1):
+    def __init__(self, *, estimator=None, projections=1, boost_train_size=0.5):
         super().__init__()
 
         self.estimator = estimator
@@ -20,6 +22,9 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
         self.c = None
         # number of projections
         self.projections = projections
+
+        # boost train subsampling
+        self.boost_train_size = boost_train_size
 
         # random projections
         self.projection_matrix = None
@@ -41,7 +46,9 @@ class EnsembleOfManyProjections(sklearn.base.RegressorMixin, sklearn.base.BaseEs
         self.projection_models = []
         for j in range(self.projections):
             m = sklearn.base.clone(self.estimator)
-            m.fit(projected[:, j:j+1], y_residual)
+
+            (X_train, _, y_train, _) = train_test_split(projected[:, j:j+1], y_residual, train_size=self.boost_train_size)
+            m.fit(X_train, y_train)
             self.projection_models.append(m)
             y_residual = y_residual - m.predict(projected[:, j:j+1])
 
